@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { ethers } from 'ethers'
 import './App.css'
 
-const contractABI = require('./WavePortal.json').abi;
-const contractAddress = '0x05B1FF69846671DFBd6684Ad81399525bed87B40';
+//const contractABI = require('./WavePortal.json').abi;
+import { abi as contractABI } from './WavePortal.json'
+const contractAddress = '0xDa22c1950CAa5ec1Ca25c07846283Ba42E15622D';
 
 export default function App() {
   const [currentAccount, setCurrentAccount] = useState()
@@ -91,7 +92,9 @@ export default function App() {
         const signer = provider.getSigner();
         const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
 
+        console.log('Getting all waves')
         wavePortalContract.getAllWaves().then(waves => {
+          console.log('Got waves: ', waves.length)
           const cleanedAllWaves = waves.map(wave => (
             {
               address: wave.waver,
@@ -107,6 +110,36 @@ export default function App() {
       console.log(e)
     }
   }, [])
+
+  useEffect(() => {
+    let wavePortalContract;
+  
+    const onNewWave = (from, timestamp, message) => {
+      console.log('NewWave', from, timestamp, message);
+      setAllWaves(prevState => [
+        ...prevState,
+        {
+          address: from,
+          timestamp: new Date(timestamp * 1000),
+          message: message,
+        },
+      ]);
+    };
+  
+    if (window.ethereum) {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+  
+      wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
+      wavePortalContract.on('NewWave', onNewWave);
+    }
+  
+    return () => {
+      if (wavePortalContract) {
+        wavePortalContract.off('NewWave', onNewWave);
+      }
+    };
+  }, []);
   
   return (
     <div className="mainContainer">

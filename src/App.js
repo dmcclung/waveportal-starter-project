@@ -1,41 +1,40 @@
-import React, { useEffect, useState } from 'react'
-import { ethers } from 'ethers'
-import './App.css'
+import React, { useEffect, useState } from 'react';
+import { ethers } from 'ethers';
+import './App.css';
 
-//const contractABI = require('./WavePortal.json').abi;
-import { abi as contractABI } from './WavePortal.json'
+import { abi as contractABI } from './WavePortal.json';
 const contractAddress = '0xDa22c1950CAa5ec1Ca25c07846283Ba42E15622D';
 
 export default function App() {
-  const [currentAccount, setCurrentAccount] = useState()
-  const [waveMessage, setWaveMessage] = useState("")
-  const [allWaves, setAllWaves] = useState([])
+  const [currentAccount, setCurrentAccount] = useState();
+  const [waveMessage, setWaveMessage] = useState("");
+  const [allWaves, setAllWaves] = useState([]);
 
   const checkIfWalletConnected = async () => {
     try {
-      const { ethereum } = window
+      const { ethereum } = window;
       if (!ethereum) {
-        console.log("Make sure you have Metamask")
-        return
+        console.log("Make sure you have Metamask");
+        return;
       } else {
-        console.log("We have ethereum", ethereum)
+        console.log("We have ethereum", ethereum);
       }
 
-      const accounts = await ethereum.request({ method: 'eth_accounts' })
+      const accounts = await ethereum.request({ method: 'eth_accounts' });
       if (accounts.length > 0) {
-        console.log('Found authorized account:', accounts[0])
-        setCurrentAccount(accounts[0])
+        console.log('Found authorized account:', accounts[0]);
+        setCurrentAccount(accounts[0]);
       } else {
-        console.log('No authorized account')
+        console.log('No authorized account');
       }
     } catch (e) {
-      console.log(e)
+      console.log(e);
     }
   }
 
   useEffect(() => {
-    checkIfWalletConnected()
-  })
+    checkIfWalletConnected();
+  }, []);
 
   const connectWallet = async () => {
     try {
@@ -51,7 +50,7 @@ export default function App() {
       console.log("Connected", accounts[0]);
       setCurrentAccount(accounts[0]); 
     } catch (e) {
-      console.log(e)
+      console.log(e);
     }
   }
 
@@ -79,7 +78,7 @@ export default function App() {
         console.log("Ethereum object doesn't exist!");
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 
@@ -92,24 +91,24 @@ export default function App() {
         const signer = provider.getSigner();
         const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
 
-        console.log('Getting all waves')
+        console.log('Getting all waves');
         wavePortalContract.getAllWaves().then(waves => {
-          console.log('Got waves: ', waves.length)
+          console.log('Got waves: ', waves.length);
           const cleanedAllWaves = waves.map(wave => (
             {
               address: wave.waver,
               timestamp: new Date(wave.timestamp * 1000),
               message: wave.message
             }
-          ))
+          ));
 
-          setAllWaves(cleanedAllWaves)
-        })
+          setAllWaves(cleanedAllWaves);
+        });
       }
     } catch (e) {
-      console.log(e)
+      console.log(e);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     let wavePortalContract;
@@ -126,19 +125,20 @@ export default function App() {
       ]);
     };
   
-    if (window.ethereum) {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const { ethereum } = window;
+    if (ethereum) {
+      const provider = new ethers.providers.Web3Provider(ethereum);
       const signer = provider.getSigner();
   
       wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
       wavePortalContract.on('NewWave', onNewWave);
+
+      return () => {
+        if (wavePortalContract) {
+          wavePortalContract.off('NewWave', onNewWave);
+        }
+      };
     }
-  
-    return () => {
-      if (wavePortalContract) {
-        wavePortalContract.off('NewWave', onNewWave);
-      }
-    };
   }, []);
   
   return (
